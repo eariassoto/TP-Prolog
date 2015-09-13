@@ -270,13 +270,8 @@ afirmalo(X) :- assert(X).
 % --- retractaTodo/1(+Termino) -------------------------------------------------
 %     retracta todos los hechos que se unifiquen con el término T
 
-retractaTodo(T) :-				% para retractar todas las cláusulas que
-   X = T, retractalos(T,X).		% unifican con T, primero "guardamos" una
-							% copia del patrón en X
-retractalos(T,X) :-				% luego retractamos c/una de las cláusulas
-   retract(T), retractaTodo(X).		% en la base que unifican con T, y usamos X
-retractalos(_) :- !.				% para "refrescar" el patrón; una vez todas
-							% han sido retractadas, fallar
+retractaTodo(T) :-
+   retractall(T).
 
 
 % --- El operador de corte (!, "cut")
@@ -288,7 +283,8 @@ retractalos(_) :- !.				% para "refrescar" el patrón; una vez todas
 negacion(M,fail) :- M, !.			% si la meta M es verdadera, falla
 negacion(_,true).				% en otro caso (es falsa), sale con éxito
 
-
+negacion2(M,fail) :- M.
+negacion2(_,true).
 % ------------------------------------------------------------------------------
 %
 % --- Tarea programada 1: Prolog
@@ -338,27 +334,51 @@ pos(I, O, [_|C], P) :-
 % --- 3. Explique en detalle qué hace el intérprete Prolog, paso a paso con la
 %        meta miembro(X,[a,b,c,d,e]).
 %
+% Cuando se ejecuta esta meta la variable X se unifica con la cabeza de la
+% lista (constante a) y sale. Adjunto la información que me dio la utilidad
+% trace. No sé si afecte pero estoy usando el intérprete SWI-Prolog en Fedora
+%
+% [trace]  ?- miembro(S,[a,b,c,d,e]).
+%    Call: (6) miembro(_G3443, [a, b, c, d, e]) ? creep
+%    Exit: (6) miembro(a, [a, b, c, d, e]) ? creep
+% S = a
 %
 % --- 4. En el predicado 'maximo/2', ¿dónde podríamos incluir un corte para
 %        evitar múltiples soluciones?
 %
+% El predicado maximo/2 no resenta multiples soluciones.
+% Si se ejecuta maximo([2,54,6], M). La respuesta del interprete es
+% M = 54.
 %
 % --- 5. Modifique el predicado 'negacion/2' eliminando el operador de corte,
 %        y explique qué sucede.
 %
+% Hice el predicado negacion2/2 que no tiene el corte y cuando se ejecuta
+% por ejemplo negacion2(2=2, X). el interprete indica que X = false pero
+% no se termina el comando hasta que presione Enter. En negacion/2 el false
+% se imprime y se termina la ejecución.
 %
 % --- 6. Indique las llamadas al predicado assert necesarias para añadir el
 %        predicado sub/3.
 %
-sub(X,[X|Rx],[X|Rx]).
-sub(X,[_|R],Z) :-
-   sub(X,R,Z).
+%sub(X,[X|Rx],[X|Rx]).
+%sub(X,[_|R],Z) :-  sub(X,R,Z).
+%
+%
+% Para añadir estas reglas se usan estas llamas a assert
+% assert(sub(X,[X|Rx],[X|Rx])).
+% assert(sub(X,[_|R],Z) :- sub(X,R,Z)).
 %
 %
 % --- 7. Use retractaTodo/1 para eliminar todos los hechos de sub/3. ¿Elimina
 %        todas las cláusulas del predicado? Modifique retractaTodo/1 para que
 %        elimine también todas las reglas.
 %
+% Originalmente no se eliminan las clausulas pero modificando el predicado
+% retractaTodo estas llamadas borran el predicado sub/3
+%
+% retractaTodo(sub(X,[X|Rx],[X|Rx])).
+% retractaTodo(sub(X,[_|R],Z) :- sub(X,R,Z)).
 %
 % --- 8. Programe los predicados de manejo de conjuntos siguientes: union/3,
 %        intereseccion/3, diferencia/3, y potencia/2.
@@ -413,3 +433,8 @@ diferencia([A|Ak], B, C) :-
    member(A,B), diferencia(Ak, B, C).    % si la cabeza de A ya está en B, continúe
 diferencia([A|Ak], B, [A|Ck]) :-
    not(member(A, B)), diferencia(Ak, B, Ck). % si la cabeza de A no está en B, unifíquela con C
+
+
+   powerset([], []).
+   powerset([H|T], P) :- powerset(T,P).
+   powerset([H|T], [H|P]) :- powerset(T,P).
