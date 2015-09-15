@@ -330,23 +330,36 @@ pos(I, O, [_|C], P) :-
 %        subarbol/3(+O,+A,-S) que devuelva la sublista de S en la que se
 %        encuentre la primera instancia del objeto O en la lista A
 %
+
+
+% ---  subarbol/3(+O,+A,-S) ---------------------------------------------------
+%      Devuelva la sublista S en la que encuentra la primera instancia del
+%      objeto O en la lista A
 %
+% --- ejemplo: subarbol(d, [a, b, [d, e, f], g], S).  -> S = [d, e, f] ;
+
+subarbol(O, [O|Ok], [O|Ok]) :- !. % caso coincide con raiz
+subarbol(O, [_|[O|_]], [O]) :- !. % coincide con el segundo elemento
+
+subarbol(O, [R|[P|Pk]], S) :-
+  is_list(R), subarbol(O, R, S); % si la raiz es lista llame recurs
+  is_list(P), subarbol(O, P, S); % si el segundo elemento es lista llame recur
+  subarbol(O, Pk, S), !. % iteracion en la lista del arbol
+
 % --- 3. Explique en detalle qué hace el intérprete Prolog, paso a paso con la
 %        meta miembro(X,[a,b,c,d,e]).
 %
-% Cuando se ejecuta esta meta la variable X se unifica con la cabeza de la
-% lista (constante a) y sale. Adjunto la información que me dio la utilidad
-% trace. No sé si afecte pero estoy usando el intérprete SWI-Prolog en Fedora
-%
-% [trace]  ?- miembro(S,[a,b,c,d,e]).
-%    Call: (6) miembro(_G3443, [a, b, c, d, e]) ? creep
-%    Exit: (6) miembro(a, [a, b, c, d, e]) ? creep
-% S = a
+% Cuando se ejecuta miembro(X, [a,b,c,d,e). este es unificable con la primera 
+% regla de miembro, osea X se unifica con a, pero como no hay corte de backtracking 
+% el intérprete unifica la proposición con la segunda regla, entonces hace llamado 
+% recursivo con X y la lista [b,c,d,e]. Luego se vuelve a disparar la primera regla 
+% y X se unifica con b, pero como hay backtracking se dispara la segunda regla y se 
+% llama recursivamente con [c,d,e]. Esto sucede de manera similar con el resto de la lista.
 %
 % --- 4. En el predicado 'maximo/2', ¿dónde podríamos incluir un corte para
 %        evitar múltiples soluciones?
 %
-% El predicado maximo/2 no resenta multiples soluciones.
+% El predicado maximo/2 no presenta multiples soluciones.
 % Si se ejecuta maximo([2,54,6], M). La respuesta del interprete es
 % M = 54.
 %
@@ -354,15 +367,14 @@ pos(I, O, [_|C], P) :-
 %        y explique qué sucede.
 %
 % Hice el predicado negacion2/2 que no tiene el corte y cuando se ejecuta
-% por ejemplo negacion2(2=2, X). el interprete indica que X = false pero
-% no se termina el comando hasta que presione Enter. En negacion/2 el false
-% se imprime y se termina la ejecución.
+% por ejemplo negacion2(2=2, X). el interprete indica que X = fail y luego por 
+% backtracking indica X = true.
 %
 % --- 6. Indique las llamadas al predicado assert necesarias para añadir el
 %        predicado sub/3.
 %
-%sub(X,[X|Rx],[X|Rx]).
-%sub(X,[_|R],Z) :-  sub(X,R,Z).
+% sub(X,[X|Rx],[X|Rx]).
+% sub(X,[_|R],Z) :-  sub(X,R,Z).
 %
 %
 % Para añadir estas reglas se usan estas llamas a assert
@@ -435,6 +447,28 @@ diferencia([A|Ak], B, [A|Ck]) :-
    not(member(A, B)), diferencia(Ak, B, Ck). % si la cabeza de A no está en B, unifíquela con C
 
 
-   powerset([], []).
-   powerset([H|T], P) :- powerset(T,P).
-   powerset([H|T], [H|P]) :- powerset(T,P).
+% ---  subconjunto/2(-R,+L) ---------------------------------------------------
+%      Devuelve todos los subconjuntos de la lista L y los unifica por medio de
+%      backtracking
+%
+% --- ejemplo: subconjunto(X, [a,b,c]). ->
+% X = [a, b, c] ;
+% X = [a, b] ;
+% X = [a, c] ;
+% X = [a] ;
+% X = [b, c] ;
+% X = [b] ;
+% X = [c] ;
+% X = [].
+
+subconjunto([],[]).
+subconjunto([S|Sk], [S|Tk]) :- subconjunto(Sk,Tk). % unifica las cabezas
+subconjunto(S, [_|Tk]) :- subconjunto(S,Tk).
+
+% ---  potencia/2(+C, -R) ---------------------------------------------------
+%      Devuelve el conjunto potencia de la lista C y lo devuelve como otra lista en R.
+%      Este predicado utliza el predicado subconjunto/2 y lo almacena en la lista por
+% medio del predicado findall ya definido por swi-prolog
+
+% --- ejemplo: potencia([a,b,c], X). -> X = [[a, b, c], [a, b], [a, c], [a], [b, c], [b], [c], []].
+potencia(C, R) :- findall(A, subconjunto(A, C), R). % la variable libre A es auxiliar
